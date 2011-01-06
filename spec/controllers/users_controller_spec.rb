@@ -1,127 +1,118 @@
 require 'spec_helper'
 
 describe UsersController do
+  render_views
 
-  def mock_user(stubs={})
-    (@mock_user ||= mock_model(User).as_null_object).tap do |user|
-      user.stub(stubs) unless stubs.empty?
+  describe "GET 'show'" do
+
+    before(:each) do
+      @user = Factory(:user)
     end
+
+    it "should be successful" do
+      get :show, :id => @user
+      response.should be_success
+    end
+
+    it "should find the right user" do
+      get :show, :id => @user
+      assigns(:user).should == @user
+    end
+
+ it "should have the right title" do
+      get :show, :id => @user
+      response.should have_selector("title", :content => @user.name)
+    end
+
+    it "should include the user's name" do
+      get :show, :id => @user
+      response.should have_selector("h1", :content => @user.name)
+    end
+
+    it "should have a profile image" do
+      get :show, :id => @user
+      response.should have_selector("h1>img", :class => "gravatar")
+    end
+
   end
 
-  describe "GET index" do
-    it "assigns all users as @users" do
-      User.stub(:all) { [mock_user] }
-      get :index
-      assigns(:users).should eq([mock_user])
-    end
-  end
+	describe "GET 'new'" do
 
-  describe "GET show" do
-    it "assigns the requested user as @user" do
-      User.stub(:find).with("37") { mock_user }
-      get :show, :id => "37"
-      assigns(:user).should be(mock_user)
-    end
-  end
-
-  describe "GET new" do
-    it "assigns a new user as @user" do
-      User.stub(:new) { mock_user }
+    it "should be successful" do
       get :new
-      assigns(:user).should be(mock_user)
+      response.should be_success
     end
+
+    it "should have the right title" do
+      get :new
+      response.should have_selector("title", :content => "Sign up")
+    end
+    
+    it "should have a name field" do
+      get :new
+      response.should have_selector("input[name='user[name]'][type='text']")
+    end
+
+    it "should have an mail field" do end
+
+    it "should have a password field" do end
+
+    it "should have a password confirmation field" do end
   end
+  
+  describe "POST 'create'" do
 
-  describe "GET edit" do
-    it "assigns the requested user as @user" do
-      User.stub(:find).with("37") { mock_user }
-      get :edit, :id => "37"
-      assigns(:user).should be(mock_user)
+    describe "failure" do
+
+      before(:each) do
+        @attr = { :name => "", :mail => "", :password => "",
+                  :password_confirmation => "" }
+      end
+
+      it "should not create a user" do
+        lambda do
+          post :create, :user => @attr
+        end.should_not change(User, :count)
+      end
+
+      it "should have the right title" do
+        post :create, :user => @attr
+        response.should have_selector("title", :content => "Sign up")
+      end
+
+      it "should render the 'new' page" do
+        post :create, :user => @attr
+        response.should render_template('new')
+      end
+      
+     end
+    
+     describe "success" do
+
+      before(:each) do
+        @attr = { :name => "New User", :mail => "user@example.com",
+                  :password => "foobar", :password_confirmation => "foobar" }
+      end
+
+      it "should create a user" do
+        lambda do
+          post :create, :user => @attr
+        end.should change(User, :count).by(1)
+      end
+
+      it "should redirect to the user show page" do
+        post :create, :user => @attr
+        response.should redirect_to(user_path(assigns(:user)))
+      end    
+      
+      it "should have a welcome message" do
+        post :create, :user => @attr
+        flash[:success].should =~ /welcome to the sample app/i
+      end
+         
     end
+    
   end
-
-  describe "POST create" do
-
-    describe "with valid params" do
-      it "assigns a newly created user as @user" do
-        User.stub(:new).with({'these' => 'params'}) { mock_user(:save => true) }
-        post :create, :user => {'these' => 'params'}
-        assigns(:user).should be(mock_user)
-      end
-
-      it "redirects to the created user" do
-        User.stub(:new) { mock_user(:save => true) }
-        post :create, :user => {}
-        response.should redirect_to(user_url(mock_user))
-      end
-    end
-
-    describe "with invalid params" do
-      it "assigns a newly created but unsaved user as @user" do
-        User.stub(:new).with({'these' => 'params'}) { mock_user(:save => false) }
-        post :create, :user => {'these' => 'params'}
-        assigns(:user).should be(mock_user)
-      end
-
-      it "re-renders the 'new' template" do
-        User.stub(:new) { mock_user(:save => false) }
-        post :create, :user => {}
-        response.should render_template("new")
-      end
-    end
-
-  end
-
-  describe "PUT update" do
-
-    describe "with valid params" do
-      it "updates the requested user" do
-        User.should_receive(:find).with("37") { mock_user }
-        mock_user.should_receive(:update_attributes).with({'these' => 'params'})
-        put :update, :id => "37", :user => {'these' => 'params'}
-      end
-
-      it "assigns the requested user as @user" do
-        User.stub(:find) { mock_user(:update_attributes => true) }
-        put :update, :id => "1"
-        assigns(:user).should be(mock_user)
-      end
-
-      it "redirects to the user" do
-        User.stub(:find) { mock_user(:update_attributes => true) }
-        put :update, :id => "1"
-        response.should redirect_to(user_url(mock_user))
-      end
-    end
-
-    describe "with invalid params" do
-      it "assigns the user as @user" do
-        User.stub(:find) { mock_user(:update_attributes => false) }
-        put :update, :id => "1"
-        assigns(:user).should be(mock_user)
-      end
-
-      it "re-renders the 'edit' template" do
-        User.stub(:find) { mock_user(:update_attributes => false) }
-        put :update, :id => "1"
-        response.should render_template("edit")
-      end
-    end
-
-  end
-
-  describe "DELETE destroy" do
-    it "destroys the requested user" do
-      User.should_receive(:find).with("37") { mock_user }
-      mock_user.should_receive(:destroy)
-      delete :destroy, :id => "37"
-    end
-
-    it "redirects to the users list" do
-      User.stub(:find) { mock_user }
-      delete :destroy, :id => "1"
-      response.should redirect_to(users_url)
-    end
-  end
-
+  
 end
+
